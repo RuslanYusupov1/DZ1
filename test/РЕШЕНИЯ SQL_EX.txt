@@ -1,0 +1,95 @@
+1) Задание: 51 (Serge I: 2003-02-17) задание на два очка
+Найдите названия кораблей, имеющих наибольшее число орудий среди всех имеющихся кораблей такого же водоизмещения (учесть корабли из таблицы Outcomes).
+
+
+select s.name 
+from ships s, classes c
+where s.class = c.class
+	and c.numGuns = (select max(cl.numGuns) 
+		from classes cl 
+		where cl.displacement = c.displacement)
+union
+	select o.ship from outcomes o, classes c
+	where o.ship = c.class
+                and c.numGuns = (select max(cls.numGuns) 
+			from classes cls 
+			where cls.displacement = c.displacement)
+
+
+2) Задание: 52 (qwrqwr: 2010-04-23) задание на два очка
+Определить названия всех кораблей из таблицы Ships, которые могут быть линейным японским кораблем,
+имеющим число главных орудий не менее девяти, калибр орудий менее 19 дюймов и водоизмещение не более 65 тыс.тонн
+
+
+select s.name 
+from ships as s join classes as c
+on c.class = s.class
+where c.country = 'Japan'
+	and (c.numGuns >= 9 or c.numGuns is null)
+	and (c.bore < 19 or c.bore is null)
+	and (c.displacement <= 65000 or c.displacement is null)
+	and c.type = 'bb'
+
+
+
+
+
+3) Задание: 54 (Serge I: 2003-02-14) задание на два очка
+С точностью до 2-х десятичных знаков определите среднее число орудий всех линейных кораблей (учесть корабли из таблицы Outcomes).
+
+
+select cast(avg(numguns * 1.0) as decimal(4,2))
+from (
+	select name, class from ships
+	union
+	select ship, ship from outcomes
+	) s 
+	join classes c on s.class=c.class
+where type='bb'
+
+
+4) Задание: 56 (Serge I: 2003-02-16) задание на два очка
+Для каждого класса определите число кораблей этого класса, потопленных в сражениях. Вывести: класс и число потопленных кораблей.
+
+
+select c.class, count(o.result)
+from classes as c
+		left join (
+			select name ship, class
+			from ships 
+        	union
+        select ship, ship
+        from outcomes
+        		) as a on c.class = a.class
+	left join outcomes as o on o.ship=a.ship
+		and o.result='sunk'
+group by c.class
+
+
+5) Задание: 57 (Serge I: 2003-02-14)
+Для классов, имеющих потери в виде потопленных кораблей и не менее 3 кораблей в базе данных, вывести имя класса и число потопленных кораблей.
+
+
+select class, count(ship)
+from (
+      select class, ship
+      from Outcomes
+      join Ships on ship = name and result = 'sunk'
+      union
+      select class, ship
+      from Outcomes
+      join Classes on ship = class and result = 'sunk'
+) as tabl1
+where class in (
+      select class
+      from (
+         select class, name
+         from Ships
+         union
+         select ship, ship
+         from Outcomes
+         join Classes on ship = class
+) as tabl2
+group by Class
+having count( name ) > 2)
+group by Class
